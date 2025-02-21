@@ -1,0 +1,64 @@
+# Сборка и временные файлы
+bin/
+obj/
+*.csproj.user
+*.suo
+*.user
+*.sln.docstates
+
+# NuGet Packages
+*.nupkg
+packages/
+# Исключение для сохранения Package Cache, если нужно
+!packages/build/
+
+# Логи и диагностика
+*.log
+logs/
+
+# Файлы Visual Studio
+.vs/
+*.vsidx
+*.vssscc
+*.vspx
+*.vspscc
+
+# Файлы Rider (JetBrains)
+.idea/
+*.iml
+
+# Пользовательские настройки
+*.pubxml
+*.pubxml.user
+
+# Тестовые результаты
+TestResults/
+*.trx
+
+# Профилирование и отладка
+*.pdb
+*.cache
+*.ilk
+*.meta
+
+# Файлы бэкапов
+*~
+*.bak
+
+# Скомпилированные файлы
+*.dll
+*.exe
+*.exp
+*.lib
+
+# Временные файлы ASP.NET
+[Tt]emp/
+[Tt]emporary ASP.NET Files/
+
+# Файлы конфигурации с секретами (не добавляйте в git)
+appsettings.json
+appsettings.*.json
+secrets.json
+
+# Папка для публикации
+[Pp]ublish/
