@@ -12,12 +12,13 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Копирование и восстановление проекта (предполагаем, что .csproj в корне)
-COPY ["AuthService.csproj", "."]
-RUN dotnet restore "AuthService.csproj"
+COPY ["AuthService/AuthService.csproj", "AuthService/"]
+COPY ["packages", "packages/"]
+RUN dotnet restore "AuthService/AuthService.csproj"
 
 # Копирование всего проекта и сборка
 COPY . .
-WORKDIR "/src"
+WORKDIR "/src/AuthService"
 RUN dotnet build "AuthService.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Стадия публикации

@@ -25,7 +25,21 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var token = await _authService.LoginAsync(request);
-        return Ok(new { Token = token });
+        var (token, isConfirmed) = await _authService.LoginAsync(request);
+        return Ok(new { Token = token, IsEmailConfirmed = isConfirmed });
+    }
+
+    [HttpPost("confirm-email-code")]
+    public async Task<IActionResult> ConfirmEmailCode([FromBody] ConfirmEmailRequest request)
+    {
+        var isConfirmed = await _authService.ConfirmEmailCode(request);
+        return isConfirmed ? Ok() : Conflict("Code is invalid or expired");
+    }
+
+    [HttpPost("update-email-code")]
+    public async Task<IActionResult> UpdateEmailCode([FromBody] UpdateCodeRequest request)
+    {
+        await _authService.UpdateEmailCode(request);
+        return Ok();
     }
 }

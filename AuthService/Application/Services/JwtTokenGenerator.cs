@@ -1,9 +1,9 @@
-﻿using AuthService.Application.Interfaces;
-using AuthService.Domain.Enities;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AuthService.Application.Interfaces;
+using AuthService.Domain.Enities;
+using Microsoft.IdentityModel.Tokens;
 
 namespace AuthService.Application.Services;
 
@@ -29,9 +29,9 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         };
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
-            claims: claims,
+            _configuration["Jwt:Issuer"],
+            _configuration["Jwt:Audience"],
+            claims,
             expires: DateTime.Now.AddDays(1),
             signingCredentials: credentials
         );

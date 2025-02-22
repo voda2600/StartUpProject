@@ -7,8 +7,6 @@ obj/
 *.sln.docstates
 
 # NuGet Packages
-*.nupkg
-packages/
 # Исключение для сохранения Package Cache, если нужно
 !packages/build/
 

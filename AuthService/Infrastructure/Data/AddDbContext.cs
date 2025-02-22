@@ -10,6 +10,6 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
-    //dotnet ef migrations add CreateAuthDatabase --context AppDbContext --project C:\Users\Albert\Desktop\StartUpProject\AuthService\AuthService\AuthService\AuthService.csproj
+    //dotnet ef migrations add CreateAuthDatabase --context AppDbContext --project C:\Users\Albert\Desktop\StartUp\StartUpProject\AuthService\AuthService.csproj
     //dotnet ef database update --context AppDbContext
 }
