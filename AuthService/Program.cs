@@ -4,6 +4,7 @@ using AuthService.Application.Services;
 using AuthService.Domain.Interfaces;
 using AuthService.Infrastructure;
 using AuthService.Infrastructure.Data;
+using AuthService.Infrastructure.Exceptions;
 using AuthService.Infrastructure.Repositories;
 using EmailService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json", true, true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", true, true)
     .AddEnvironmentVariables();
-
+//ToDo: Навесить на controller с code Authorize
 // Add services to the container
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -23,7 +24,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<IEmailService, EmailService.EmailService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService.Application.Services.AuthService>();
-builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<AuthBackgroundService>();
 builder.Services.AddHostedService<AuthBackgroundService>(provider => provider.GetService<AuthBackgroundService>()!);
 
@@ -46,7 +47,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<HighTimeExceptionFilter>();
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

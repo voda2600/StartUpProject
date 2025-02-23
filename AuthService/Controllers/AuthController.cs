@@ -2,7 +2,7 @@
 using AuthService.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AuthService.Presentation.Controllers;
+namespace AuthService.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

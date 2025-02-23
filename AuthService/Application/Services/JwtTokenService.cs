@@ -7,11 +7,11 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace AuthService.Application.Services;
 
-public class JwtTokenGenerator : IJwtTokenGenerator
+public class JwtTokenService : IJwtTokenService
 {
     private readonly IConfiguration _configuration;
 
-    public JwtTokenGenerator(IConfiguration configuration)
+    public JwtTokenService(IConfiguration configuration)
     {
         _configuration = configuration;
     }

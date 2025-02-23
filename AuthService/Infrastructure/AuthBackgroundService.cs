@@ -7,6 +7,7 @@ public class AuthBackgroundService : BackgroundService
 {
     private const int MaxRetryCount = 3;
     private const int MaxParallelTasks = 10;
+    private const int BaseDelaySeconds = 30;
     private readonly Channel<(string Email, string Code, int RetryCount)> _emailQueue;
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthBackgroundService> _logger;
@@ -27,7 +28,9 @@ public class AuthBackgroundService : BackgroundService
             return;
         }
 
+        _logger.LogInformation("Attempting to queue email for {Email} with code {Code}", email, code);
         await _emailQueue.Writer.WriteAsync((email, code, 0), CancellationToken.None);
+        _logger.LogInformation("Queued email for {Email} with code {Code}", email, code);
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -100,6 +103,7 @@ public class AuthBackgroundService : BackgroundService
     {
         var (email, code, retryCount) = emailData;
 
+        _logger.LogInformation("Starting to process email for {Email}, retry count: {RetryCount}", email, retryCount);
 
         if (retryCount > MaxRetryCount)
         {
@@ -109,21 +113,44 @@ public class AuthBackgroundService : BackgroundService
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)); // Увеличен таймаут до 15 секунд
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, stoppingToken).Token;
 
+            _logger.LogInformation("Attempting to send email to {Email}", email);
             await _emailService.SendConfirmationEmail(email, code, linkedToken);
             _logger.LogInformation("Successfully sent email to {Email}", email);
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("Email sending timed out for {Email} after 15 seconds", email);
-            await _emailQueue.Writer.WriteAsync((email, code, retryCount + 1), stoppingToken);
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            AddToQueueWithDelay(email, code, retryCount + 1, stoppingToken);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "An error occurred while sending email to {Email}", email);
-            await _emailQueue.Writer.WriteAsync((email, code, retryCount + 1), stoppingToken);
+            _logger.LogWarning(ex.Message, "An error occurred while sending email to {Email}", email);
+            AddToQueueWithDelay(email, code, retryCount + 1, stoppingToken);
+        }
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+    }
+
+    private async Task AddToQueueWithDelay(string email, string code, int retryCount, CancellationToken stoppingToken)
+    {
+        var delaySeconds = BaseDelaySeconds * retryCount;
+        _logger.LogInformation("Scheduling retry for {Email} in {DelaySeconds} seconds, retry count: {RetryCount}",
+            email, delaySeconds, retryCount);
+
+        await Task.Delay(delaySeconds * 1000, stoppingToken);
+
+        if (!stoppingToken.IsCancellationRequested)
+        {
+            await _emailQueue.Writer.WriteAsync((email, code, retryCount), stoppingToken);
+            _logger.LogInformation("Retried email queued for {Email} with code {Code}, retry count: {RetryCount}",
+                email, code, retryCount);
+        }
+        else
+        {
+            _logger.LogWarning("Retry for {Email} canceled due to stopping token", email);
         }
     }
 }

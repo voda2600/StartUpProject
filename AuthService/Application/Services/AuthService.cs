@@ -3,6 +3,7 @@ using AuthService.Application.Interfaces;
 using AuthService.Domain.Enities;
 using AuthService.Domain.Interfaces;
 using AuthService.Infrastructure;
+using AuthService.Infrastructure.Exceptions;
 
 namespace AuthService.Application.Services;
 
@@ -11,14 +12,14 @@ public class AuthService : IAuthService
     private readonly AuthBackgroundService _backgroundService;
     private readonly TimeSpan _codeRetryInterval = TimeSpan.FromMinutes(2);
     private readonly TimeSpan _expiredSpan = TimeSpan.FromMinutes(30);
-    private readonly IJwtTokenGenerator _tokenGenerator;
+    private readonly IJwtTokenService _tokenService;
     private readonly IUserRepository _userRepository;
 
-    public AuthService(IUserRepository userRepository, IJwtTokenGenerator tokenGenerator,
+    public AuthService(IUserRepository userRepository, IJwtTokenService tokenService,
         AuthBackgroundService backgroundService)
     {
         _userRepository = userRepository;
-        _tokenGenerator = tokenGenerator;
+        _tokenService = tokenService;
         _backgroundService = backgroundService;
     }
 
@@ -26,7 +27,7 @@ public class AuthService : IAuthService
     {
         var existingUser = await _userRepository.GetByEmailAsync(request.Email);
         if (existingUser != null)
-            throw new BadHttpRequestException("User already exists");
+            throw new HighTimeException("User already exists");
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         var code = GenerateConfirmationCode();
@@ -34,7 +35,7 @@ public class AuthService : IAuthService
 
         await _backgroundService.QueueEmailAsync(user.Email, user.ConfirmationCode!);
         await _userRepository.AddAsync(user);
-        return _tokenGenerator.GenerateToken(user);
+        return _tokenService.GenerateToken(user);
     }
 
 
@@ -42,16 +43,16 @@ public class AuthService : IAuthService
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);
         if (user == null || User.VerifyPassword(request.Password, user.PasswordHash))
-            throw new BadHttpRequestException("Invalid credentials");
+            throw new HighTimeException("Invalid credentials");
 
-        return (_tokenGenerator.GenerateToken(user), user.EmailConfirmed);
+        return (_tokenService.GenerateToken(user), user.EmailConfirmed);
     }
 
     public async Task<bool> ConfirmEmailCode(ConfirmEmailRequest request)
     {
         var user = await _userRepository.GetByEmailAsync(request.EmailFromToken);
         if (user == null)
-            throw new BadHttpRequestException("Invalid email");
+            throw new HighTimeException("Invalid email");
 
         if (user.ConfirmationCodeExpiration < DateTime.UtcNow || string.IsNullOrEmpty(request.ConfirmationCode) ||
             user.ConfirmationCode != request.ConfirmationCode) return false;
@@ -66,7 +67,7 @@ public class AuthService : IAuthService
     {
         var user = await _userRepository.GetByEmailAsync(request.EmailFromToken);
         if (user == null)
-            throw new BadHttpRequestException("Invalid email");
+            throw new HighTimeException("Invalid email");
 
         if ((user.ConfirmationCodeExpiration.HasValue && CanRetry(user.ConfirmationCodeExpiration.Value)) ||
             !user.ConfirmationCodeExpiration.HasValue)
@@ -79,7 +80,7 @@ public class AuthService : IAuthService
         }
         else
         {
-            throw new BadHttpRequestException("Wait for retry delay");
+            throw new HighTimeException("Wait for retry delay");
         }
     }
 

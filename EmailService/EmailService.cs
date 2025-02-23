@@ -2,6 +2,7 @@
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
+// ReSharper disable NotResolvedInText
 
 namespace EmailService;
 
@@ -22,7 +23,7 @@ public class EmailService : IEmailService
                         throw new ArgumentNullException("Smtp:Password is not configured");
     }
 
-    public async Task SendConfirmationEmail(string email, string code, CancellationToken cancellationToken)
+    public async Task SendConfirmationEmailAsync(string email, string code, CancellationToken cancellationToken)
     {
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("HighTime", _smtpUser));
