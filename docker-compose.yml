@@ -8,7 +8,7 @@ services:
     depends_on:
       - postgres
     environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=AuthDb;Username=postgres;Password=admin;Port=5432
+      - ConnectionStrings__DefaultConnection=Host=localhost;Database=AuthDb;Username=postgres;Password=admin;Port=5432
     ports:
       - "8091:8080"
 
