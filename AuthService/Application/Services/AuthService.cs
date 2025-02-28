@@ -30,22 +30,21 @@ public class AuthService : IAuthService
             throw new HighTimeException("User already exists");
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        var code = GenerateConfirmationCode();
-        var user = new User(request.Email, passwordHash, request.Name, code, GetExpiredDateTime());
-
-        await _backgroundService.QueueEmailAsync(user.Email, user.ConfirmationCode!);
+        var user = new User(request.Email, passwordHash, request.Name);
+        
         await _userRepository.AddAsync(user);
-        return _tokenService.GenerateToken(user);
+        return _tokenService.GenerateAccessToken(user);
     }
 
 
-    public async Task<(string?, bool)> LoginAsync(LoginRequest request)
+    public async Task<(string, string , bool)> LoginAsync(LoginRequest request)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);
-        if (user == null || User.VerifyPassword(request.Password, user.PasswordHash))
+        if (user == null || !User.VerifyPassword(request.Password, user.PasswordHash))
             throw new HighTimeException("Invalid credentials");
 
-        return (_tokenService.GenerateToken(user), user.EmailConfirmed);
+        var tokens = await _tokenService.GenerateTokensAsync(user);
+        return (tokens.AccessToken, tokens.RefreshToken, user.EmailConfirmed);
     }
 
     public async Task<bool> ConfirmEmailCode(ConfirmEmailRequest request)
@@ -82,6 +81,19 @@ public class AuthService : IAuthService
         {
             throw new HighTimeException("Wait for retry delay");
         }
+    }
+    
+    public async Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken)
+    {
+        if (!_tokenService.ValidateRefreshToken(refreshToken, out var user) || user is null)
+            throw new HighTimeException("Invalid or expired refresh token");
+        
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
+        await _userRepository.UpdateAsync(user);
+
+        var (newAccessToken, newRefreshToken) = await _tokenService.GenerateTokensAsync(user);
+        return (newAccessToken, newRefreshToken);
     }
 
     private DateTime GetExpiredDateTime()

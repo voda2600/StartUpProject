@@ -1,5 +1,6 @@
 ﻿using AuthService.Application.DTOs;
 using AuthService.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.Controllers;
@@ -25,10 +26,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var (token, isConfirmed) = await _authService.LoginAsync(request);
-        return Ok(new { Token = token, IsEmailConfirmed = isConfirmed });
+        var (token, refresh, isConfirmed) = await _authService.LoginAsync(request);
+        return Ok(new { Token = token, Refresh = refresh,  IsEmailConfirmed = isConfirmed });
     }
 
+    [Authorize]
     [HttpPost("confirm-email-code")]
     public async Task<IActionResult> ConfirmEmailCode([FromBody] ConfirmEmailRequest request)
     {
@@ -36,10 +38,18 @@ public class AuthController : ControllerBase
         return isConfirmed ? Ok() : Conflict("Code is invalid or expired");
     }
 
+    [Authorize]
     [HttpPost("update-email-code")]
     public async Task<IActionResult> UpdateEmailCode([FromBody] UpdateCodeRequest request)
     {
         await _authService.UpdateEmailCode(request);
         return Ok();
+    }
+    
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        var (accessToken, refreshToken) = await _authService.RefreshTokenAsync(request.RefreshToken);
+        return Ok(new { AccessToken = accessToken, RefreshToken = refreshToken });
     }
 }
